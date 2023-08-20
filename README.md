@@ -22,3 +22,5 @@ This is Server Source Code.
    The same message will be send back by server to you and it will be visible on your client cmd prompt also
 10. You can stop the client connection by typing **bye** or pressing ctrl+c
 11. Same way you can stop the server by pressing ctrl+c
+12. You can parallelly open a new client cmd prompt ( without closing the first client cmd) and start new client connection by typing  ./client.exe <any name of the client> e.g: ./client.exe Ramesh
+13. Remember you have to  go to first the source folder path always
