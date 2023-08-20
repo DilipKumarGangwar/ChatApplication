@@ -9,7 +9,7 @@ This is Server Source Code.
 2.Clients can disconnect from server by sending **bye** or pressing ctrl+C
 
 **How to Use**
-1. Download or clone the code
+1. Download or clone the code in your local system.
 2. Compile Server and client code
    Compile Client Code by writing this command: g++ SocketClient.cpp -o client -lwsock32  (you can give any name for your executable after -o, here I have given name as client)
    Compile Server Code by writing this command: g++ SocketServer.cpp -o server -lwsock32  (you can give any name for your executable after -o, here I have given name as server)
