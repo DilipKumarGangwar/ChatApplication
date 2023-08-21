@@ -1,10 +1,8 @@
 //Server Program
 //Handles Multiple Clients
 
-//there are 2 folders: headers, source. header have 
-
 #include<iostream>
-#include<D:\Interviews\Project\Client_Server_Chat_Application_Final\Headers\Server.h>
+#include "..\Headers\Server.h"
 #include<vector>
 #include<winsock2.h>
 
@@ -15,7 +13,7 @@ using namespace std;
 struct sockaddr_in  srv;
 
 int nMaxFd =0;
-const int MAX_CLIENTS = 5; // Maximum number of clients
+const int MAX_CLIENTS = 5; // Maximum number of clients to handle
 
 
 Server::Server()
@@ -144,11 +142,19 @@ void Server::checkEventOnClientSocket(vector<pair<SOCKET,string>> &clientInfo,fd
                 else
                 {
                     cout<<"Message Received from Client : "<<clientInfo[i].second<<"("<<clientInfo[i].first<<") = "<<buffer<<endl;
-                    // Send the same message back to the client
-                    int sendStatus = send(clientInfo[i].first, buffer, nStatus, 0);
-                    cout<<"send"<<sendStatus<<endl;
-                    if(sendStatus == SOCKET_ERROR)
-                       cout<<"Failed to send response to client "<<clientInfo[i].second<<"("<<clientInfo[i].first<<") = "<<endl;
+                    // forward the same message back to each of the clients
+                    for(int j=0;j<MAX_CLIENTS;j++)
+                    {
+                      if(i!=j)
+                      {
+                        string message =  buffer;
+                        int sendStatus = send(clientInfo[j].first, message.c_str(), message.size()+1, 0);
+                        memset(buffer, 0, DATA_BUFFER); // Clear the buffer
+                        //cout<<"send"<<sendStatus<<endl;
+                        if(sendStatus == SOCKET_ERROR)
+                            cout<<"Failed to send Message to client "<<clientInfo[j].second<<"("<<clientInfo[j].first<<") = "<<endl;
+                      }
+                    }
                 }
             }
         }
@@ -169,10 +175,12 @@ void Server::acceptAndProcessTheRequests(vector<pair<SOCKET,string>> &clientInfo
           
           this->addClientsToFDSet(clientInfo,read_fd_set);
 
-         
+         struct timeval timeout;
+        timeout.tv_sec = 3;  // Set timeout to 5 seconds
+        timeout.tv_usec = 0;
           // Use select to monitor multiple sockets 
           cout<<"Monitoring Sockets for Events.."<<endl;  
-          int ret_val = select(0,&read_fd_set,NULL,NULL,NULL);
+          int ret_val = select(0,&read_fd_set,NULL,NULL,0);
           
 
           if (ret_val < 0) {

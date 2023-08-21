@@ -1,7 +1,7 @@
 //Client Program
 #include<iostream>
 #include<winsock2.h>
-#include "..\Headers\Client.h"
+#include<D:\Interviews\Project\Client_Server_Chat_Application_Final\Headers\Client.h>
 using namespace std;
 
 #define PORT 9909
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
 
     //Initialise the environment for sockaddr structure
     //and connect to server
-   const char * ip="192.168.43.208"; 
+   const char * ip="192.168.43.254"; 
    int nStatus = client.connectToServer(ip,PORT);
    if(nStatus < 0)
    {  
@@ -113,40 +113,60 @@ int main(int argc, char* argv[])
  
    //Send your data now
    char buffer[DATA_BUFFER];
+
+   fd_set readfds;
+    FD_ZERO(&readfds);
+  
+// Initialize the timer
+    time_t timerStart = 0;
+    const int messageInterval = 1; // Wait time in seconds
    do
    {
-    
-    std::cout<<endl<<"Please enter the message to send to Server: ";
-    cin.getline(buffer,200);
-    nStatus = client.sendData(buffer); //send data
-    //nStatus gets the no of bytes sent actually
-    if(nStatus < 0)
-    {
-        std::cout<<"Send Data FAILED "<<endl;
-        exit(EXIT_FAILURE);
-    }  
-    else if(nStatus >0)
-    {
-        std::cout<<"Message Sent"<<endl;
-    }
-    // Receive response from the server
-    char serverResponse[DATA_BUFFER] = {0};
-    int recvStatus = recv(client.getSocketID(), serverResponse, DATA_BUFFER, 0);
-    if (recvStatus == SOCKET_ERROR)
-    {
-        cout << "Failed to receive response from server" << endl;
-        break;
-    }
-    else if (recvStatus == 0)
-    {
-        cout << "Server has disconnected" << endl;
-        // isServerConnected = false; // Server disconnected
-        break;
-    }
-    else
-    {
-        cout << "Received from server: " << serverResponse << endl;
-    }
+      FD_SET(client.getSocketID(), &readfds);
+      struct timeval timeout;
+      timeout.tv_sec = messageInterval;
+      timeout.tv_usec = 0;     
+        std::cout<<endl<<"Please enter the message to send to Server: ";
+        cin.getline(buffer,200);
+        // Include client's name in the message
+        string message = string(clientName) + ": " + buffer;
+
+        nStatus = client.sendData(message.c_str());
+    // memset(buffer, 0, DATA_BUFFER); // Clear the buffer
+        //nStatus = client.sendData(buffer); //send data
+        //nStatus gets the no of bytes sent actually
+        if(nStatus < 0)
+        {
+            std::cout<<"Send Data FAILED "<<endl;
+            exit(EXIT_FAILURE);
+        }  
+        else if(nStatus >0)
+        {
+            // Start the timer
+                timerStart = time(nullptr);
+
+                // Use select to wait for either data from the socket or the timer
+                int result = select(client.getSocketID() + 1, &readfds, nullptr, nullptr, &timeout);
+                if (result == -1) {
+                    std::cerr << "Select faailed!" << std::endl;
+                } else if (result == 0) {
+                    std::cout << "Timer elapsed, please enter another message." << std::endl;
+                } else {
+                    if (FD_ISSET(client.getSocketID(), &readfds)) {
+                        int bytesRead = recv(client.getSocketID(), buffer, sizeof(buffer), 0);
+                        if (bytesRead == -1) {
+                            std::cerr << "Recv failed!" << std::endl;
+                        } else if (bytesRead == 0) {
+                            std::cout << "Connection closed by remote side/server." << std::endl;
+                            break;
+                        } else {
+                            // Process the received data in 'buffer'
+                            buffer[bytesRead] = '\0'; // Ensure null-termination
+                            std::cout << "Received: " << buffer << std::endl;
+                        }
+                    }
+                }//else
+        }
 
    } while(strcmp(buffer,"bye"));
 
