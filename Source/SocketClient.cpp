@@ -1,12 +1,16 @@
 //Client Program
 #include<iostream>
 #include<winsock2.h>
-#include<D:\Interviews\Project\Client_Server_Chat_Application_Final\Headers\Client.h>
+#include<string>
+#include "../Headers/Client.h"
+
+#include<thread>
 using namespace std;
 
 #define PORT 9909
 #define DATA_BUFFER 1024
 struct sockaddr_in  srv;
+string clientName;
 
 Client::Client()
 {
@@ -51,23 +55,77 @@ int Client::connectToServer(const char *ip,int port )
    return connect(listenSocket,(struct sockaddr*)&srv,sizeof(srv));
    
 }
-int Client::sendName(const char * name)
+int Client::sendName(string clientName)
 {
-    return send(listenSocket,name,DATA_BUFFER,0); //send client name to server 
+    return send(listenSocket,clientName.c_str(),strlen(clientName.c_str())+1,0); //send client name to server 
 }
 
-int Client::sendData(const char* data)
+
+
+void CleanUp(SOCKET clientSocket)
 {
-    return send(listenSocket,data,DATA_BUFFER,0); //send client name to server
+    closesocket(clientSocket);
+    WSACleanup();
+}
+
+void handleSend(SOCKET clientSocket)
+{
+  string message;
+  do
+  {
+        std::cout<<clientName + ":";
+        getline(cin,message);
+        // Include client's name in the message
+        message = clientName + ": " + message;
+
+        int nStatus = send(clientSocket,message.c_str(),strlen(message.c_str())+1,0);
+   
+        //nStatus gets the no of bytes sent actually
+        if(nStatus == SOCKET_ERROR)
+        {
+            std::cout<<"Send Data FAILED "<<WSAGetLastError()<<endl;
+            CleanUp(clientSocket);
+            exit(EXIT_FAILURE);
+        }  
+        cout<<"Message Sent"<<endl;
+  } while (1);
+  
+}
+
+void handleReceive(SOCKET clientSocket)
+{
+   char buffer[DATA_BUFFER]; 
+   memset(buffer,0,DATA_BUFFER);
+   while(1)
+   {
+        int bytesRead = recv(clientSocket, buffer, DATA_BUFFER-1, 0);
+        if (bytesRead == -1)
+        {
+            std::cout << "Recv failed!" << std::endl;
+            CleanUp(clientSocket);
+            exit(EXIT_FAILURE);
+        }
+        else if (bytesRead == 0) 
+        {
+            std::cout << "Connection closed by remote side/server." << std::endl;
+            break;
+        } 
+        else
+        {
+            // Process the received data in 'buffer'
+            buffer[bytesRead] = '\0'; // Ensure null-termination
+            std::cout << '\r';
+            std::cout << buffer << "\n";
+            //print the prompt again
+            std::cout << clientName << ": ";
+        }
+   }
 }
 
 
 int main(int argc, char* argv[])
 {
-    if (argc != 2) {
-        std::cout << "Usage: " << argv[0] << " <client_name>" << endl;
-        return 1;
-    }
+   
     //Create Client Object
     Client client;
      
@@ -89,7 +147,7 @@ int main(int argc, char* argv[])
 
     //Initialise the environment for sockaddr structure
     //and connect to server
-   const char * ip="192.168.43.254"; 
+   const char * ip="192.168.43.208"; 
    int nStatus = client.connectToServer(ip,PORT);
    if(nStatus < 0)
    {  
@@ -101,7 +159,8 @@ int main(int argc, char* argv[])
    //send first the name of Client and then your data to server
 
    //sending name of client to server
-    const char *clientName = argv[1];
+    cout<<"Hi,What's you name";
+    getline(cin,clientName);
     nStatus = client.sendName(clientName); 
 
     //nStatus gets the no of bytes sent actually
@@ -111,66 +170,17 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }  
  
-   //Send your data now
-   char buffer[DATA_BUFFER];
+   
 
-   fd_set readfds;
-    FD_ZERO(&readfds);
-  
-// Initialize the timer
-    time_t timerStart = 0;
-    const int messageInterval = 1; // Wait time in seconds
-   do
-   {
-      FD_SET(client.getSocketID(), &readfds);
-      struct timeval timeout;
-      timeout.tv_sec = messageInterval;
-      timeout.tv_usec = 0;     
-        std::cout<<endl<<"Please enter the message to send to Server: ";
-        cin.getline(buffer,200);
-        // Include client's name in the message
-        string message = string(clientName) + ": " + buffer;
+   
+   thread senderThread(handleSend,client.getSocketID());
+   senderThread.detach();
 
-        nStatus = client.sendData(message.c_str());
-    // memset(buffer, 0, DATA_BUFFER); // Clear the buffer
-        //nStatus = client.sendData(buffer); //send data
-        //nStatus gets the no of bytes sent actually
-        if(nStatus < 0)
-        {
-            std::cout<<"Send Data FAILED "<<endl;
-            exit(EXIT_FAILURE);
-        }  
-        else if(nStatus >0)
-        {
-            // Start the timer
-                timerStart = time(nullptr);
+   thread receiverThread(handleReceive,client.getSocketID());
+   receiverThread.join();
+   
 
-                // Use select to wait for either data from the socket or the timer
-                int result = select(client.getSocketID() + 1, &readfds, nullptr, nullptr, &timeout);
-                if (result == -1) {
-                    std::cerr << "Select faailed!" << std::endl;
-                } else if (result == 0) {
-                    std::cout << "Timer elapsed, please enter another message." << std::endl;
-                } else {
-                    if (FD_ISSET(client.getSocketID(), &readfds)) {
-                        int bytesRead = recv(client.getSocketID(), buffer, sizeof(buffer), 0);
-                        if (bytesRead == -1) {
-                            std::cerr << "Recv failed!" << std::endl;
-                        } else if (bytesRead == 0) {
-                            std::cout << "Connection closed by remote side/server." << std::endl;
-                            break;
-                        } else {
-                            // Process the received data in 'buffer'
-                            buffer[bytesRead] = '\0'; // Ensure null-termination
-                            std::cout << "Received: " << buffer << std::endl;
-                        }
-                    }
-                }//else
-        }
-
-   } while(strcmp(buffer,"bye"));
-
-   std::cout<<"Client Disconnected from server";
+  // std::cout<<"Client Disconnected from server";
 
     return 0;
 }

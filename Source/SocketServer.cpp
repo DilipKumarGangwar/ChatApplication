@@ -50,6 +50,7 @@ SOCKET Server::getSocketID()
 
 int Server::bindToSocket(int port,const char *ip )
 {
+   //fill server address
     srv.sin_family=AF_INET;
     srv.sin_port = htons(port); 
     if(!strcmp(ip,""))  //or ip[0]=='\0'
@@ -115,7 +116,7 @@ void Server::checkEventOnClientSocket(vector<pair<SOCKET,string>> &clientInfo,fd
 {
       for (int i = 0; i < MAX_CLIENTS; i++) 
       {
-        cout<<"Checking for incoming data..."<<endl;
+        //cout<<"Checking for incoming data..."<<endl;
         if(clientInfo[i].first!=0 && FD_ISSET(clientInfo[i].first,&read_fd_set))
         {
           //if Yes
@@ -123,7 +124,7 @@ void Server::checkEventOnClientSocket(vector<pair<SOCKET,string>> &clientInfo,fd
 
             //receive data
             int nStatus = recv(clientInfo[i].first,buffer,DATA_BUFFER,0);
-              cout<<"Recreived="<<buffer<<" "<<nStatus<<endl;
+           //  cout<<"Recreived="<<buffer<<" "<<nStatus<<endl;
             if(nStatus <= 0)
             {
               cout<<"Client "<<clientInfo[i].first<<" with name= "<<clientInfo[i].second<<" Disconnected from Server "<<endl;
@@ -151,8 +152,8 @@ void Server::checkEventOnClientSocket(vector<pair<SOCKET,string>> &clientInfo,fd
                         int sendStatus = send(clientInfo[j].first, message.c_str(), message.size()+1, 0);
                         memset(buffer, 0, DATA_BUFFER); // Clear the buffer
                         //cout<<"send"<<sendStatus<<endl;
-                        if(sendStatus == SOCKET_ERROR)
-                            cout<<"Failed to send Message to client "<<clientInfo[j].second<<"("<<clientInfo[j].first<<") = "<<endl;
+                        //if(sendStatus == SOCKET_ERROR)
+                          //  cout<<"Failed to send Message to client "<<clientInfo[j].second<<"("<<clientInfo[j].first<<") = "<<endl;
                       }
                     }
                 }
@@ -250,7 +251,7 @@ int main()
         cout<<"BIND is SUCCESSFUL"<<endl;
 
 
-      //Step 5: Listen to the  incoming requests from client, maximum 5 clinet requests
+      //Step 5: Listen to the  incoming requests from client, maximum 5 client requests
     
       nRet = server.startListen(5);
       if(nRet == SOCKET_ERROR) //-1
