@@ -5,8 +5,10 @@ This is Server Source Code.
 2. Server can Stop by pressing Ctrl+c on command prompt
 
 **SocketClient.cpp**
+This is Client Source Code.
 1.Client can send the message to servers and gets the same message as echoed from server
 2.Clients can disconnect from server by pressing ctrl+C on client cmd
+3.User can open multiple instances of client in different cmd
 
 **Server Remains open even if all clients disconnects from it.**
 Server will stop only when user explicitly stops by Pressing ctrl + c
