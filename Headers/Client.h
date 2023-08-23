@@ -1,3 +1,5 @@
+#include<string>
+using namespace std;
 class Client
 {
    SOCKET listenSocket;
@@ -8,7 +10,7 @@ class Client
      void createClientSocket();
      int initializeWSA();
      int connectToServer(const char* ipAddress, int port);
-     int sendName(const char*);
+     int sendName(string&);
      int sendData(const char*);
      SOCKET getSocketID();
 };

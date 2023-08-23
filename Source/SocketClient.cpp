@@ -55,7 +55,7 @@ int Client::connectToServer(const char *ip,int port )
    return connect(listenSocket,(struct sockaddr*)&srv,sizeof(srv));
    
 }
-int Client::sendName(string clientName)
+int Client::sendName(string &clientName)
 {
     return send(listenSocket,clientName.c_str(),strlen(clientName.c_str())+1,0); //send client name to server 
 }
@@ -76,19 +76,23 @@ void handleSend(SOCKET clientSocket)
         std::cout<<clientName + ":";
         getline(cin,message);
         // Include client's name in the message
-        message = clientName + ": " + message;
-
-        int nStatus = send(clientSocket,message.c_str(),strlen(message.c_str())+1,0);
-   
-        //nStatus gets the no of bytes sent actually
-        if(nStatus == SOCKET_ERROR)
+       
+        if(message.size()>0)
         {
-            std::cout<<"Send Data FAILED "<<WSAGetLastError()<<endl;
-            CleanUp(clientSocket);
-            exit(EXIT_FAILURE);
-        }  
-        cout<<"Message Sent"<<endl;
-  } while (1);
+            message = clientName + ": " + message;
+
+            int nStatus = send(clientSocket,message.c_str(),strlen(message.c_str())+1,0);
+    
+            //nStatus gets the no of bytes sent actually
+            if(nStatus == SOCKET_ERROR)
+            {
+                std::cout<<"Send Data FAILED "<<WSAGetLastError()<<endl;
+                CleanUp(clientSocket);
+                exit(EXIT_FAILURE);
+            }  
+            cout<<"Message Sent"<<endl;
+        }
+  } while (message.size()>0);
   
 }
 
@@ -98,7 +102,9 @@ void handleReceive(SOCKET clientSocket)
    memset(buffer,0,DATA_BUFFER);
    while(1)
    {
-        int bytesRead = recv(clientSocket, buffer, DATA_BUFFER-1, 0);
+        int bytesRead = recv(clientSocket, buffer, DATA_BUFFER, 0);
+        
+        //cout<<"After read= "<<bytesRead<<" "<<buffer<<endl;
         if (bytesRead == -1)
         {
             std::cout << "Recv failed!" << std::endl;
@@ -108,7 +114,8 @@ void handleReceive(SOCKET clientSocket)
         else if (bytesRead == 0) 
         {
             std::cout << "Connection closed by remote side/server." << std::endl;
-            break;
+            //break;
+            return ;
         } 
         else
         {
@@ -116,7 +123,7 @@ void handleReceive(SOCKET clientSocket)
             buffer[bytesRead] = '\0'; // Ensure null-termination
             std::cout << '\r';
             std::cout << buffer << "\n";
-            //print the prompt again
+            //cout<<"print the prompt again";
             std::cout << clientName << ": ";
         }
    }
@@ -167,19 +174,24 @@ int main(int argc, char* argv[])
     if(nStatus < 0)
     {
         std::cout<<"Sending CLIENT NAME  FAILED "<<endl;
+         if (client.getSocketID() != INVALID_SOCKET) 
+            closesocket(client.getSocketID());
+   
+        WSACleanup();
         exit(EXIT_FAILURE);
     }  
  
-   
-
-   
+  
    thread senderThread(handleSend,client.getSocketID());
    senderThread.detach();
 
    thread receiverThread(handleReceive,client.getSocketID());
    receiverThread.join();
    
-
+   if (client.getSocketID() != INVALID_SOCKET) 
+       closesocket(client.getSocketID());
+   
+   WSACleanup();
   // std::cout<<"Client Disconnected from server";
 
     return 0;
