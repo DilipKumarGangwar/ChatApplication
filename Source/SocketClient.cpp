@@ -154,7 +154,8 @@ int main(int argc, char* argv[])
 
     //Initialise the environment for sockaddr structure
     //and connect to server
-   const char * ip="192.168.43.208"; 
+   const char * ip="192.168.43.208";    // //or IP of the machine on which server is currently running, We can give localhost ip
+   //127.0.0.1 if server and client is on the same machine itself 
    int nStatus = client.connectToServer(ip,PORT);
    if(nStatus < 0)
    {  

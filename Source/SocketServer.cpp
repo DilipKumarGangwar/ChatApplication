@@ -8,11 +8,13 @@
 #include<string>
 #include<winsock2.h>
 #include<map>
+#include<mutex>
 using namespace std;
 
 #define PORT 9909
 #define DATA_BUFFER 1024
 struct sockaddr_in  srv;
+std::mutex outputMutex;  // Declare a mutex
 
 int nMaxFd =0;
 const int MAX_CLIENTS = 5; // Maximum number of clients to handle
@@ -224,7 +226,7 @@ void handleNewConnection(SOCKET socket)
    
 
     //Prepare welcome message
-    string welcome_message = "Welcome to Chat Group";
+    string welcome_message = "Welcome to Chat Group ";
     welcome_message = welcome_message + clientName; 
     //send welcome message to all clients
     for(int i=0;i<master.fd_count;i++)
@@ -289,18 +291,28 @@ void handleNewConnection(SOCKET socket)
 void handleAcceptRequest(SOCKET socket)
 {
    //keep on listeneing 
+     cout << "hello ";
+     cout.flush();
    while(1)
    {
       //accept the request for this new client
       //Create new socket
+    
       SOCKET newClientSocket = accept(socket,nullptr,nullptr);
       if(newClientSocket != INVALID_SOCKET)
       {
+         
           //accept is successfull
           //create new thread which keep on listeening on this new socket
+          outputMutex.lock();  // Lock the mutex before printing
+   cout << "good ";
+   cout.flush();
+   outputMutex.unlock();  // Unlock the mutex after printing
           FD_SET(newClientSocket,&master);
           thread newConnection(handleNewConnection,newClientSocket);          
+         
           newConnection.detach();
+          
       }
       else
       {
@@ -398,8 +410,9 @@ int main()
        //make 2 threads 1. for accepting the new requests 2. for receiving data on existing sockets
         
         thread acceptRequest(handleAcceptRequest,server.getSocketID());
-        acceptRequest.detach();
+       
         thread receiveRequest(handleSendRequest,server.getSocketID());
+         acceptRequest.join();
         receiveRequest.join();
 
 
